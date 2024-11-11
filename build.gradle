@@ -27,8 +27,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'com.google.api-client:google-api-client:1.32.1'
     implementation 'com.google.http-client:google-http-client-jackson2:1.39.2'
-	implementation 'jakarta.servlet:jakarta.servlet-api:5.0.0' // For servlet support
-    implementation 'org.springframework.boot:spring-boot-starter-security' // For Spring Security
 
 }
 
