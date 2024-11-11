@@ -1,5 +1,7 @@
 package csumb.project3.model;
 
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -10,6 +12,8 @@ public class User {
     private String id; // MongoDB IDs are typically Strings
     private String username;
     private String email;
+
+    private List<String> favorites;
 
     // Getters and Setters
     public String getId() {
@@ -35,4 +39,13 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
+      public List<String> getFavorites() {
+        return favorites;
+    }
+
+    public void setFavorites(List<String> favorites) {
+        this.favorites = favorites;
+    }
+
 }

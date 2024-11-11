@@ -23,4 +23,10 @@ public class RecipeService {
     public List<Recipe> getAllRecipes() {
         return recipeRepository.findAll();
     }
+
+    public void deleteRecipeById(String id) {
+        recipeRepository.deleteById(id);
+    }
+
+
 }
