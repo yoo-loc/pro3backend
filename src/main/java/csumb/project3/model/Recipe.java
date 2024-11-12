@@ -13,6 +13,8 @@ public class Recipe {
     private String ingredients;
     private String instructions;
     private String dietaryTags;
+    private String url;        // New field for recipe URL
+    private String imageUrl;
 
     // Getters and Setters
     public String getId() {
@@ -54,4 +56,21 @@ public class Recipe {
     public void setDietaryTags(String dietaryTags) {
         this.dietaryTags = dietaryTags;
     }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
 }
