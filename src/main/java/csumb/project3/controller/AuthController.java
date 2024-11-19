@@ -11,12 +11,22 @@ import org.springframework.web.bind.annotation.*;
 import csumb.project3.model.User;
 import csumb.project3.service.UserService;
 
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+
+    
+
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Boolean>> getAuthStatus(HttpServletRequest request) {
+        boolean isAuthenticated = request.getSession(false) != null; // Checks if a session exists
+        Map<String, Boolean> response = Collections.singletonMap("isAuthenticated", isAuthenticated);
+        return ResponseEntity.ok(response);
 
     @Autowired
     private UserService userService; // Assume UserService exists with necessary methods
@@ -48,6 +58,7 @@ public class AuthController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
         }
+
     }
 
     // Logout endpoint
@@ -72,4 +83,8 @@ public class AuthController {
             "user", isAuthenticated ? session.getAttribute("user") : null
         ));
     }
+
+   
+
+
 }

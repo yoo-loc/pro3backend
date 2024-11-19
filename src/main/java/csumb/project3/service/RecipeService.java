@@ -66,12 +66,18 @@ public class RecipeService {
         }
     }
 
+
     // Add a comment to a recipe
     public Recipe addCommentToRecipe(String recipeId, Comment comment) {
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
         recipe.addComment(comment);
         return recipeRepository.save(recipe);
+
+    public List<Recipe> getTrendingRecipes() {
+        // Example logic: fetch a random set of recipes or those marked as trending
+        return recipeRepository.findTop10ByOrderByLikesDesc(); // Or any relevant logic
+
     }
 
     // Remove a comment from a recipe

@@ -1,6 +1,7 @@
 package csumb.project3.controller;
 
 import csumb.project3.model.Recipe;
+import csumb.project3.repository.RecipeRepository;
 import csumb.project3.service.RecipeService;
 import csumb.project3.service.UserService;
 
@@ -19,6 +20,9 @@ public class RecipeController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RecipeRepository recipeRepository;
 
     // Post a new recipe
     @PostMapping
@@ -76,6 +80,20 @@ public class RecipeController {
         return ResponseEntity.ok(userRecipes);
     }
 
+    // Discover curated or trending recipes
+    @GetMapping("/discover")
+    public ResponseEntity<List<Recipe>> discoverRecipes() {
+        List<Recipe> trendingRecipes = recipeService.getTrendingRecipes(); // Implement this method in RecipeService
+        return ResponseEntity.ok(trendingRecipes);
+    }
 
-    
+    // Update likes for a recipe
+    @PostMapping("/updateLikes/{id}")
+    public ResponseEntity<Recipe> updateLikes(@PathVariable String id, @RequestParam int likes) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
+        recipe.setLikes(likes); // Ensure the `likes` field exists in the Recipe class
+        Recipe updatedRecipe = recipeRepository.save(recipe);
+        return ResponseEntity.ok(updatedRecipe);
+    }
 }
