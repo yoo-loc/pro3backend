@@ -120,4 +120,42 @@ public class UserController {
         userService.updateUserIdsToSimpleIds();
         return ResponseEntity.ok(Map.of("message", "User IDs updated to simple sequential IDs."));
     }
+
+    // Add a recipe to favorites
+    @PostMapping("/{userId}/favorites")
+    public ResponseEntity<?> addToFavorites(@PathVariable String userId, @RequestBody String recipeId) {
+        Optional<User> userOpt = userService.getUserById(userId);
+
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (!user.getFavorites().contains(recipeId)) {
+                user.getFavorites().add(recipeId);
+                userService.saveUser(user); // Save updated user through service
+                return ResponseEntity.ok(Map.of("message", "Recipe added to favorites."));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Recipe already in favorites."));
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "User not found with ID: " + userId));
+        }
+    }
+
+    @DeleteMapping("/{userId}/favorites")
+public ResponseEntity<?> removeFromFavorites(@PathVariable String userId, @RequestBody String recipeId) {
+    Optional<User> userOpt = userService.getUserById(userId);
+
+    if (userOpt.isPresent()) {
+        User user = userOpt.get();
+        if (user.getFavorites().contains(recipeId)) {
+            user.getFavorites().remove(recipeId);
+            userService.saveUser(user); // Save updated user
+            return ResponseEntity.ok(Map.of("message", "Recipe removed from favorites."));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Recipe not found in favorites."));
+        }
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found with ID: " + userId));
+    }
+}
 }

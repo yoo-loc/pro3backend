@@ -3,7 +3,6 @@ package csumb.project3.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -14,13 +13,10 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for APIs
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/", "/api/users/signup", "/api/auth/login", "/api/auth/logout").permitAll() // Allow public access to signup, login, and logout
-                                .anyRequest().authenticated() // Require authentication for other routes
+                        .anyRequest().permitAll() // Allow all requests without authentication
                 )
-                .sessionManagement(session -> session
-                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Stateless session management for APIs
-                )
-                .formLogin(login -> login.disable()); // Disable form-based login
+                .formLogin(login -> login.disable()) // Disable form-based login
+                .httpBasic(httpBasic -> httpBasic.disable()); // Disable basic authentication
 
         return http.build();
     }
