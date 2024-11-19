@@ -9,12 +9,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Boolean>> getAuthStatus(HttpServletRequest request) {
@@ -31,4 +34,8 @@ public class AuthController {
         }
         return ResponseEntity.ok(Collections.singletonMap("message", "Logged out successfully"));
     }
+
+   
+
+
 }

@@ -26,8 +26,10 @@ public class UserService {
     public void addFavorite(String userId, String recipeId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        user.getFavorites().add(recipeId);
-        userRepository.save(user);
+        if (!user.getFavorites().contains(recipeId)) { // Avoid duplicates
+            user.getFavorites().add(recipeId);
+            userRepository.save(user);
+        }
     }
 
     public List<Recipe> getFavorites(String userId) {

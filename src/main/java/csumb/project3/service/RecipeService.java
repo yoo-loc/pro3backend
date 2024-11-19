@@ -27,6 +27,9 @@ public class RecipeService {
     public void deleteRecipeById(String id) {
         recipeRepository.deleteById(id);
     }
-
+    public List<Recipe> getTrendingRecipes() {
+        // Example logic: fetch a random set of recipes or those marked as trending
+        return recipeRepository.findTop10ByOrderByLikesDesc(); // Or any relevant logic
+    }
 
 }
