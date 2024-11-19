@@ -1,6 +1,7 @@
 package csumb.project3.controller;
 
 import csumb.project3.model.Recipe;
+import csumb.project3.repository.RecipeRepository;
 import csumb.project3.service.RecipeService;
 import csumb.project3.service.UserService; // Import UserService
 
@@ -19,6 +20,8 @@ public class RecipeController {
 
     @Autowired
     private UserService userService; // Inject UserService
+      @Autowired
+    private RecipeRepository recipeRepository;
 
     @PostMapping("/post")
     public Recipe postRecipe(@RequestBody Recipe recipe) {
@@ -57,4 +60,18 @@ public class RecipeController {
     public List<Recipe> getFavorites(@PathVariable String userId) {
         return userService.getFavorites(userId);
     }
+
+    @GetMapping("/discover")
+    public List<Recipe> discoverRecipes() {
+        // Logic for fetching curated or trending recipes
+        return recipeService.getTrendingRecipes(); // This method should be implemented in RecipeService
+    }
+    @PostMapping("/updateLikes/{id}")
+    public Recipe updateLikes(@PathVariable String id, @RequestParam int likes) {
+        Recipe recipe = recipeRepository.findById(id).orElseThrow(() -> new RuntimeException("Recipe not found"));
+        recipe.setLikes(likes);
+        return recipeRepository.save(recipe);
+    }
+    
+
 }

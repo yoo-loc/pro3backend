@@ -10,4 +10,6 @@ public interface RecipeRepository extends MongoRepository<Recipe, String> {
     
     // Define a custom query for MongoDB
     List<Recipe> findByIngredientsContaining(String ingredient);
+    List<Recipe> findTop10ByOrderByLikesDesc(); // Correct query derivation method
+
 }

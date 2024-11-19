@@ -15,7 +15,7 @@ public class Recipe {
     private String dietaryTags;
     private String url;        // New field for recipe URL
     private String imageUrl;
-
+    private int likes;
     // Getters and Setters
     public String getId() {
         return id;
@@ -71,6 +71,14 @@ public class Recipe {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public int getLikes() {
+        return likes;
+    }
+
+    public void setLikes(int likes) {
+        this.likes = likes;
     }
 
 }

@@ -12,6 +12,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(cors -> cors.disable())  // Enable CORS, which will use the configuration in WebConfig
+            .csrf(csrf -> csrf.disable())  // Disable CSRF for APIs
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/login", "/oauth2/**", "/api/auth/**", "/recipes/**", "/favorites/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .defaultSuccessUrl("http://localhost:3000/home", true)  // Redirect after successful login
+            );
+=======
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for APIs
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/", "/api/users/signup", "/api/auth/login", "/api/auth/logout").permitAll() // Allow public access to signup, login, and logout
@@ -21,6 +31,7 @@ public class SecurityConfig {
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Stateless session management for APIs
                 )
                 .formLogin(login -> login.disable()); // Disable form-based login
+
 
         return http.build();
     }
