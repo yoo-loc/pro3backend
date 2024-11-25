@@ -24,4 +24,9 @@ public class CommentService {
     public List<Comment> getAllComments() {
         return commentRepository.findAll();  // Fetch all comments from the DB
     }
+
+    public List<Comment> getCommentsByIds(List<String> commentIds) {
+        // Use the repository to find all comments by their IDs
+        return commentRepository.findAllById(commentIds);
+    }
 }

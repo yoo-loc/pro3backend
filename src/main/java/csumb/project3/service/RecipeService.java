@@ -68,7 +68,6 @@ public class RecipeService {
             existingRecipe.setIngredients(updatedRecipe.getIngredients());
             existingRecipe.setInstructions(updatedRecipe.getInstructions());
             existingRecipe.setDietaryTags(updatedRecipe.getDietaryTags());
-            existingRecipe.setUrl(updatedRecipe.getUrl());
             existingRecipe.setImageUrl(updatedRecipe.getImageUrl());
             return recipeRepository.save(existingRecipe);
         } else {
@@ -86,12 +85,18 @@ public class RecipeService {
     }
 
     // Add a comment to a recipe
-    public Recipe addCommentToRecipe(String recipeId, Comment comment) {
+    public Recipe addCommentToRecipe(String recipeId, String commentId) {
+        // Find the recipe by its ID
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
-        recipe.addComment(comment); // Assumes Recipe has a method to add comments
+        
+        // Add the comment ID to the recipe
+        recipe.addComment(commentId); // Add the comment ID to the comments list in the recipe
+        
+        // Save the updated recipe
         return recipeRepository.save(recipe);
     }
+    
 
     // Get trending recipes
     public List<Recipe> getTrendingRecipes() {
@@ -99,11 +104,11 @@ public class RecipeService {
         return recipeRepository.findTop10ByOrderByLikesDesc(); // Assumes this method exists in the repository
     }
 
-    // Remove a comment from a recipe
     public Recipe removeCommentFromRecipe(String recipeId, String commentId) {
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
-        recipe.removeComment(commentId); // Assumes Recipe has a method to remove comments
-        return recipeRepository.save(recipe);
+        recipe.removeComment(commentId); // Call the removeComment method
+        return recipeRepository.save(recipe); // Save the updated recipe
     }
+    
 }

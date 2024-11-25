@@ -12,13 +12,12 @@ public class Recipe {
     @Id
     private String id; // MongoDB IDs are typically Strings
     private String title;
-    private String ingredients; // List of ingredients in plain text or serialized format
+    private String ingredients; // Ingredients as plain text or serialized format
     private String instructions; // Cooking instructions
-    private List<String> dietaryTags = new ArrayList<>(); // Dietary tags stored as a list (e.g., "vegan", "gluten-free")
-    private String url; // Recipe URL
-    private String imageUrl; // URL of an image for the recipe
-    private String ownerId; // ID of the user who created this recipe
-    private List<Comment> comments = new ArrayList<>(); // List of comments associated with the recipe
+    private List<String> dietaryTags = new ArrayList<>(); // Dietary tags (e.g., vegan, gluten-free)
+    private String imageUrl; // Image URL for the recipe
+    private String ownerId; // ID of the user who created the recipe
+    private List<String> comments = new ArrayList<>(); // List of comment IDs associated with the recipe
     private int likes; // Number of likes for the recipe
 
     // Constructors
@@ -31,30 +30,40 @@ public class Recipe {
         this.ingredients = ingredients;
         this.instructions = instructions;
         this.dietaryTags = dietaryTags != null ? new ArrayList<>(dietaryTags) : new ArrayList<>();
-        this.url = url;
+
         this.imageUrl = imageUrl;
         this.ownerId = ownerId;
         this.likes = likes;
     }
 
-    // Getters and Setters for comments
-    public List<Comment> getComments() {
+    // Getters and Setters for Comments
+    public List<String> getComments() {
         return comments;
     }
 
-    public void setComments(List<Comment> comments) {
+    public void setComments(List<String> comments) {
         this.comments = comments;
     }
 
-    public void addComment(Comment comment) {
-        this.comments.add(comment);
+    // Add a comment to the recipe
+    public void addComment(String commentId) {
+        if (!comments.contains(commentId)) {
+            this.comments.add(commentId);
+        } else {
+            System.out.println("Comment ID " + commentId + " already exists.");
+        }
     }
 
+    // Remove a comment from the recipe by ID
     public void removeComment(String commentId) {
-        this.comments.removeIf(comment -> comment.getId().equals(commentId));
+        if (comments.contains(commentId)) {
+            this.comments.removeIf(comment -> comment.equals(commentId));
+        } else {
+            System.out.println("Comment ID " + commentId + " not found in recipe.");
+        }
     }
 
-    // Getters and Setters for other fields
+    // Getters and Setters for Other Fields
     public String getId() {
         return id;
     }
@@ -105,13 +114,7 @@ public class Recipe {
         dietaryTags.remove(tag);
     }
 
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
+   
 
     public String getImageUrl() {
         return imageUrl;
@@ -150,17 +153,10 @@ public class Recipe {
                 ", ingredients='" + ingredients + '\'' +
                 ", instructions='" + instructions + '\'' +
                 ", dietaryTags=" + dietaryTags +
-                ", url='" + url + '\'' +
                 ", imageUrl='" + imageUrl + '\'' +
                 ", ownerId='" + ownerId + '\'' +
                 ", likes=" + likes +
                 ", comments=" + comments +
                 '}';
-    }
-    public Comment getCommentById(String commentId) {
-        return this.comments.stream()
-                .filter(comment -> comment.getId().equals(commentId))
-                .findFirst()
-                .orElse(null); // Return null if no match is found
     }
 }
