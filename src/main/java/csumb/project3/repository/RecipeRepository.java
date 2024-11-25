@@ -23,4 +23,7 @@ public interface RecipeRepository extends MongoRepository<Recipe, String> {
 
     // Find all recipes with a specific dietary tag (case-insensitive)
     List<Recipe> findByDietaryTagsContainingIgnoreCase(String dietaryTag);
+
+    List<Recipe> findTop10ByOrderByLikesDesc(); // Correct query derivation method
+
 }

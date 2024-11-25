@@ -19,12 +19,13 @@ public class Recipe {
     private String imageUrl; // URL of an image for the recipe
     private String ownerId; // ID of the user who created this recipe
     private List<Comment> comments = new ArrayList<>(); // List of comments associated with the recipe
+    private int likes; // Number of likes for the recipe
 
     // Constructors
     public Recipe() {
     }
 
-    public Recipe(String id, String title, String ingredients, String instructions, List<String> dietaryTags, String url, String imageUrl, String ownerId) {
+    public Recipe(String id, String title, String ingredients, String instructions, List<String> dietaryTags, String url, String imageUrl, String ownerId, int likes) {
         this.id = id;
         this.title = title;
         this.ingredients = ingredients;
@@ -33,6 +34,7 @@ public class Recipe {
         this.url = url;
         this.imageUrl = imageUrl;
         this.ownerId = ownerId;
+        this.likes = likes;
     }
 
     // Getters and Setters for comments
@@ -127,6 +129,14 @@ public class Recipe {
         this.ownerId = ownerId;
     }
 
+    public int getLikes() {
+        return likes;
+    }
+
+    public void setLikes(int likes) {
+        this.likes = likes;
+    }
+
     // Utility Methods
     public boolean isOwnedBy(String userId) {
         return this.ownerId != null && this.ownerId.equals(userId);
@@ -143,7 +153,14 @@ public class Recipe {
                 ", url='" + url + '\'' +
                 ", imageUrl='" + imageUrl + '\'' +
                 ", ownerId='" + ownerId + '\'' +
+                ", likes=" + likes +
                 ", comments=" + comments +
                 '}';
+    }
+    public Comment getCommentById(String commentId) {
+        return this.comments.stream()
+                .filter(comment -> comment.getId().equals(commentId))
+                .findFirst()
+                .orElse(null); // Return null if no match is found
     }
 }

@@ -1,7 +1,8 @@
 package csumb.project3.service;
 
 import csumb.project3.model.Comment;
-import csumb.project3.model.Recipe;
+import csumb.project3.model.Recipe; 
+import csumb.project3.model.User;
 import csumb.project3.repository.RecipeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,24 @@ public class RecipeService {
 
     @Autowired
     private RecipeRepository recipeRepository;
+
+    @Autowired
+    private UserService userService; 
+
+    public Recipe saveRecipeAndUpdateUser(Recipe recipe) {
+        // Save the recipe to the database
+        Recipe savedRecipe = recipeRepository.save(recipe);
+    
+        // Update the user's recipe list
+        User user = userService.getUserById(recipe.getOwnerId())
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + recipe.getOwnerId()));
+    
+        user.addRecipe(savedRecipe.getId()); // Add recipe to the user's list
+        userService.saveUser(user);         // Save the updated user
+    
+        return savedRecipe;
+    }
+    
 
     // Save a new recipe
     public Recipe saveRecipe(Recipe recipe) {
@@ -70,15 +89,21 @@ public class RecipeService {
     public Recipe addCommentToRecipe(String recipeId, Comment comment) {
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
-        recipe.addComment(comment);
+        recipe.addComment(comment); // Assumes Recipe has a method to add comments
         return recipeRepository.save(recipe);
+    }
+
+    // Get trending recipes
+    public List<Recipe> getTrendingRecipes() {
+        // Example logic: fetch the top 10 recipes by likes
+        return recipeRepository.findTop10ByOrderByLikesDesc(); // Assumes this method exists in the repository
     }
 
     // Remove a comment from a recipe
     public Recipe removeCommentFromRecipe(String recipeId, String commentId) {
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
-        recipe.removeComment(commentId);
+        recipe.removeComment(commentId); // Assumes Recipe has a method to remove comments
         return recipeRepository.save(recipe);
     }
 }

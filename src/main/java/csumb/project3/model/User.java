@@ -15,15 +15,15 @@ public class User {
     private String email;
     private String password;
     private List<String> favorites = new ArrayList<>(); // List of favorite recipe IDs
-    private List<Comment> comments = new ArrayList<>(); // Comments made by the user
-    private List<Recipe> myRecipes = new ArrayList<>(); // Recipes created by the user
+    private List<String> comments = new ArrayList<>(); // List of comment IDs
+    private List<String> myRecipes = new ArrayList<>(); // List of recipe IDs created by the user
 
     // Default constructor
     public User() {
     }
 
     // Parameterized constructor
-    public User(String id, String username, String email, String password, List<String> favorites, List<Comment> comments, List<Recipe> myRecipes) {
+    public User(String id, String username, String email, String password, List<String> favorites, List<String> comments, List<String> myRecipes) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -74,19 +74,19 @@ public class User {
         this.favorites = favorites != null ? new ArrayList<>(favorites) : new ArrayList<>();
     }
 
-    public List<Comment> getComments() {
+    public List<String> getComments() {
         return comments;
     }
 
-    public void setComments(List<Comment> comments) {
+    public void setComments(List<String> comments) {
         this.comments = comments != null ? new ArrayList<>(comments) : new ArrayList<>();
     }
 
-    public List<Recipe> getMyRecipes() {
+    public List<String> getMyRecipes() {
         return myRecipes;
     }
 
-    public void setMyRecipes(List<Recipe> myRecipes) {
+    public void setMyRecipes(List<String> myRecipes) {
         this.myRecipes = myRecipes != null ? new ArrayList<>(myRecipes) : new ArrayList<>();
     }
 
@@ -102,41 +102,24 @@ public class User {
     }
 
     // Comment management
-    public void addComment(Comment comment) {
-        comments.add(comment);
-    }
-
-    public boolean editComment(String commentId, String newContent) {
-        for (Comment comment : comments) {
-            if (comment.getId().equals(commentId)) {
-                comment.setContent(newContent);
-                return true;
-            }
+    public void addComment(String commentId) {
+        if (!comments.contains(commentId)) {
+            comments.add(commentId);
         }
-        return false;
     }
 
-    public boolean deleteComment(String commentId) {
-        return comments.removeIf(comment -> comment.getId().equals(commentId));
+    public boolean removeComment(String commentId) {
+        return comments.remove(commentId);
     }
 
     // Recipe management
-    public void addRecipe(Recipe recipe) {
-        myRecipes.add(recipe);
+    public void addRecipe(String recipeId) {
+        if (!myRecipes.contains(recipeId)) {
+            myRecipes.add(recipeId);
+        }
     }
 
     public boolean removeRecipe(String recipeId) {
-        return myRecipes.removeIf(recipe -> recipe.getId().equals(recipeId));
-    }
-
-    public List<Recipe> getAllRecipes() {
-        return myRecipes;
-    }
-
-    public List<Recipe> getRecipesByUser(String userId) {
-        if (this.id.equals(userId)) {
-            return myRecipes;
-        }
-        return new ArrayList<>();
+        return myRecipes.remove(recipeId);
     }
 }
