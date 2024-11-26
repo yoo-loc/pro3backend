@@ -8,12 +8,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "comments")
 public class Comment {
 
-
     @Id
     private String id; // This should match what you're querying for
     private String content; // Example: the content of the comment
     private String recipeId; // ID of the associated recipe
     private String userId; // ID of the user who made the comment
+    private String username; // Username of the user who made the comment
     private LocalDateTime createdAt;
 
     // Getters and Setters
@@ -41,7 +41,13 @@ public class Comment {
         this.userId = userId;
     }
 
- 
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public String getContent() {
         return content;
@@ -55,10 +61,7 @@ public class Comment {
         return createdAt;
     }
 
-    // Setter for createdAt
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
-    
 }
