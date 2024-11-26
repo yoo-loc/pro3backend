@@ -247,36 +247,35 @@ public ResponseEntity<?> addComment(
     Comment comment = new Comment();
     comment.setId(UUID.randomUUID().toString());
     comment.setUserId(user.getId());
-    comment.setUsername(user.getUsername()); // Assign the username from the user object
+    comment.setUsername(user.getUsername()); // Include the username of the user
     comment.setRecipeId(recipeId);
     comment.setContent(content);
     comment.setCreatedAt(LocalDateTime.now());
 
-    // Save the new comment to the database
     commentService.addComment(comment);
 
     // Link the comment to the recipe
     Recipe recipe = recipeService.getRecipeById(recipeId)
             .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
-
-    // Add the new comment's ID to the recipe's comments list
     recipe.getComments().add(comment.getId());
+    recipeService.saveRecipe(recipe); // Save the updated recipe
 
-    // Save the updated recipe
-    recipeService.saveRecipe(recipe);
+    // Link the comment to the user
+    user.getComments().add(comment.getId());
+    userService.saveUser(user); // Save the updated user
 
     // Prepare response with comment details including username
     return ResponseEntity.status(HttpStatus.CREATED)
             .body(Map.of(
-                    "message", "Comment added successfully!",
-                    "comment", Map.of(
-                            "id", comment.getId(),
-                            "userId", comment.getUserId(),
-                            "username", comment.getUsername(), // Include the username in the response
-                            "recipeId", comment.getRecipeId(),
-                            "content", comment.getContent(),
-                            "createdAt", comment.getCreatedAt().toString()
-                    )
+                "message", "Comment added successfully!",
+                "comment", Map.of(
+                    "id", comment.getId(),
+                    "userId", comment.getUserId(),
+                    "username", comment.getUsername(),
+                    "recipeId", comment.getRecipeId(),
+                    "content", comment.getContent(),
+                    "createdAt", comment.getCreatedAt().toString()
+                )
             ));
 }
 
