@@ -15,8 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/recipes")
@@ -140,24 +144,24 @@ public ResponseEntity<List<Comment>> getCommentsForRecipe(@PathVariable String r
 
 
     // Add a comment to a recipe
-    @PostMapping("/{recipeId}/comments")
-    public ResponseEntity<Comment> addCommentToRecipe(@PathVariable String recipeId, @RequestBody Map<String, String> requestData) {
-        String commentId = requestData.get("commentId");
-        String content = requestData.get("content");
+    // @PostMapping("/{recipeId}/comments")
+    // public ResponseEntity<Comment> addCommentToRecipe(@PathVariable String recipeId, @RequestBody Map<String, String> requestData) {
+    //     String commentId = requestData.get("commentId");
+    //     String content = requestData.get("content");
 
-        if (commentId == null || content == null) {
-            return ResponseEntity.badRequest().body(null); // Ensure fields are provided
-        }
+    //     if (commentId == null || content == null) {
+    //         return ResponseEntity.badRequest().body(null); // Ensure fields are provided
+    //     }
 
-        Comment comment = new Comment();
-        comment.setId(commentId);
-        comment.setRecipeId(recipeId);
-        comment.setContent(content);
-        Comment savedComment = commentService.addComment(comment);
+    //     Comment comment = new Comment();
+    //     comment.setId(commentId);
+    //     comment.setRecipeId(recipeId);
+    //     comment.setContent(content);
+    //     Comment savedComment = commentService.addComment(comment);
 
-        recipeService.addCommentToRecipe(recipeId, commentId);
-        return ResponseEntity.ok(savedComment);
-    }
+    //     recipeService.addCommentToRecipe(recipeId, commentId);
+    //     return ResponseEntity.ok(savedComment);
+    // }
 
 
 // Remove a comment from a recipe
@@ -166,6 +170,91 @@ public ResponseEntity<Void> removeCommentFromRecipe(@PathVariable String recipeI
     recipeService.removeCommentFromRecipe(recipeId, commentId);
     return ResponseEntity.noContent().build();
 }
+
+
+@GetMapping("/{id}/details")
+public ResponseEntity<?> getSpecificRecipeWithComments(
+        @PathVariable String id,
+        HttpServletRequest request) {
+    
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    try {
+        // Fetch the recipe by ID
+        Recipe recipe = recipeService.getRecipeById(id)
+                .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
+
+        // Fetch the comments for the recipe
+        List<String> commentIds = recipe.getComments();
+        List<Comment> comments = commentIds.isEmpty() 
+                ? Collections.emptyList() 
+                : commentService.getCommentsByIds(commentIds);
+
+        // Prepare the response
+        Map<String, Object> response = Map.of(
+                "recipe", recipe,
+                "comments", comments
+        );
+
+        return ResponseEntity.ok(response);
+    } catch (NoSuchElementException e) {
+        // Handle case when recipe is not found
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Recipe not found with ID: " + id));
+    } catch (Exception e) {
+        // Handle unexpected errors
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "An unexpected error occurred.", "error", e.getMessage()));
+    }
+}
+
+
+
+@PostMapping("/{recipeId}/comments")
+public ResponseEntity<?> addComment(
+        @PathVariable String recipeId,
+        @RequestBody Map<String, String> requestData,
+        HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    User user = (User) session.getAttribute("user");
+    String content = requestData.get("content");
+
+    if (content == null || content.trim().isEmpty()) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", "Content cannot be empty."));
+    }
+
+    // Create and save the comment
+    Comment comment = new Comment();
+    comment.setId(UUID.randomUUID().toString());
+    comment.setUserId(user.getId());
+    comment.setRecipeId(recipeId);
+    comment.setContent(content);
+    comment.setCreatedAt(LocalDateTime.now());
+
+    commentService.addComment(comment);
+
+    // Optionally, link the comment to the recipe
+    recipeService.addCommentToRecipe(recipeId, comment.getId());
+
+    return ResponseEntity.status(HttpStatus.CREATED)
+            .body(Map.of(
+                "message", "Comment added successfully!",
+                "comment", comment
+            ));
+}
+
+    
 
   
 }

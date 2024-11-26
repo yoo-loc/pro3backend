@@ -51,5 +51,14 @@ public class Comment {
         this.content = content;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    // Setter for createdAt
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     
 }
