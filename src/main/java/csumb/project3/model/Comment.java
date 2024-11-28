@@ -5,16 +5,17 @@ import java.time.LocalDateTime;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "comments")
+@Document(collection = "comments") // Specifies the MongoDB collection
 public class Comment {
 
     @Id
-    private String id; // This should match what you're querying for
-    private String content; // Example: the content of the comment
+    private String id; // Unique ID for the comment
+    private String content; // Content of the comment
     private String recipeId; // ID of the associated recipe
-    private String userId; // ID of the user who made the comment
-    private String username; // Username of the user who made the comment
-    private LocalDateTime createdAt;
+    private String userId; // ID of the user who created the comment
+    private String username; // Username of the user who created the comment
+    private LocalDateTime createdAt; // Timestamp for when the comment was created
+    private LocalDateTime editedAt; // Timestamp for when the comment was last edited
 
     // Getters and Setters
     public String getId() {
@@ -63,5 +64,13 @@ public class Comment {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getEditedAt() {
+        return editedAt;
+    }
+
+    public void setEditedAt(LocalDateTime editedAt) {
+        this.editedAt = editedAt;
     }
 }
