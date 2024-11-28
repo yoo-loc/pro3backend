@@ -167,15 +167,6 @@ public ResponseEntity<List<Map<String, String>>> getCommentsForRecipe(@PathVaria
     
 
 
- 
-
-
-// Remove a comment from a recipe
-@DeleteMapping("/{recipeId}/comments/{commentId}")
-public ResponseEntity<Void> removeCommentFromRecipe(@PathVariable String recipeId, @PathVariable String commentId) {
-    recipeService.removeCommentFromRecipe(recipeId, commentId);
-    return ResponseEntity.noContent().build();
-}
 
 
 @GetMapping("/{id}/details")
@@ -278,6 +269,165 @@ public ResponseEntity<?> addComment(
                 )
             ));
 }
+
+
+@DeleteMapping("/{recipeId}/comments/{commentId}")
+public ResponseEntity<?> removeCommentFromRecipe(
+        @PathVariable String recipeId,
+        @PathVariable String commentId,
+        HttpServletRequest request) {
+
+    // Check if the user is authenticated
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    // Get the authenticated user from the session
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Fetch the comment from the service
+    Comment comment = commentService.getCommentById(commentId)
+            .orElseThrow(() -> new RuntimeException("Comment not found with ID: " + commentId));
+
+    // Check if the authenticated user owns the comment
+    if (!comment.getUserId().equals(authenticatedUser.getId())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "You are not authorized to delete this comment."));
+    }
+
+    // Fetch the recipe and remove the comment from its list
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
+    boolean removedFromRecipe = recipe.getComments().remove(commentId);
+    if (removedFromRecipe) {
+        recipeService.saveRecipe(recipe); // Save the updated recipe
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Comment not found in the recipe's comments list."));
+    }
+
+    // Remove the comment from the user's comment list
+    boolean removedFromUser = authenticatedUser.getComments().remove(commentId);
+    if (removedFromUser) {
+        userService.saveUser(authenticatedUser); // Save the updated user
+    }
+
+    // Delete the comment from the database
+    commentService.deleteCommentById(commentId);
+
+    return ResponseEntity.noContent().build();
+}
+
+
+// @PatchMapping("/{recipeId}/comments/{commentId}")
+// public ResponseEntity<?> editComment(
+//         @PathVariable String recipeId,
+//         @PathVariable String commentId,
+//         @RequestBody Map<String, String> requestData,
+//         HttpServletRequest request) {
+
+//     // Check if the user is authenticated
+//     HttpSession session = request.getSession(false);
+//     if (session == null || session.getAttribute("user") == null) {
+//         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                 .body(Map.of("message", "User not authenticated."));
+//     }
+
+//     // Get the authenticated user from the session
+//     User authenticatedUser = (User) session.getAttribute("user");
+
+//     // Fetch the comment from the service
+//     Comment comment = commentService.getCommentById(commentId)
+//             .orElseThrow(() -> new RuntimeException("Comment not found with ID: " + commentId));
+
+//     // Check if the authenticated user owns the comment
+//     if (!comment.getUserId().equals(authenticatedUser.getId())) {
+//         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+//                 .body(Map.of("message", "You are not authorized to edit this comment."));
+//     }
+
+//     // Validate the new content
+//     String newContent = requestData.get("content");
+//     if (newContent == null || newContent.trim().isEmpty()) {
+//         return ResponseEntity.badRequest()
+//                 .body(Map.of("message", "Content cannot be empty."));
+//     }
+
+//     // Update the comment
+//     comment.setContent(newContent);
+//     comment.setCreatedAt(LocalDateTime.now()); // Update the timestamp to reflect the edit
+//     commentService.addComment(comment); // Save the updated comment
+
+//     // Prepare response with updated comment details
+//     return ResponseEntity.ok(Map.of(
+//             "message", "Comment updated successfully!",
+//             "comment", Map.of(
+//                     "id", comment.getId(),
+//                     "userId", comment.getUserId(),
+//                     "username", comment.getUsername(),
+//                     "recipeId", comment.getRecipeId(),
+//                     "content", comment.getContent(),
+//                     "createdAt", comment.getCreatedAt().toString()
+//             )
+//     ));
+// }
+
+@PatchMapping("/{recipeId}/comments/{commentId}")
+public ResponseEntity<?> editComment(
+        @PathVariable String recipeId,
+        @PathVariable String commentId,
+        @RequestBody Map<String, String> requestData,
+        HttpServletRequest request) {
+
+    // Check if the user is authenticated
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    // Get the authenticated user from the session
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Fetch the comment from the service
+    Comment comment = commentService.getCommentById(commentId)
+            .orElseThrow(() -> new RuntimeException("Comment not found with ID: " + commentId));
+
+    // Check if the authenticated user owns the comment
+    if (!comment.getUserId().equals(authenticatedUser.getId())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "You are not authorized to edit this comment."));
+    }
+
+    // Validate the new content
+    String newContent = requestData.get("content");
+    if (newContent == null || newContent.trim().isEmpty()) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", "Content cannot be empty."));
+    }
+
+    // Update the comment
+    comment.setContent(newContent);
+    comment.setEditedAt(LocalDateTime.now()); // Update the edited timestamp
+    commentService.addComment(comment); // Save the updated comment
+
+    // Prepare response with updated comment details
+    return ResponseEntity.ok(Map.of(
+            "message", "Comment updated successfully!",
+            "comment", Map.of(
+                    "id", comment.getId(),
+                    "userId", comment.getUserId(),
+                    "username", comment.getUsername(),
+                    "recipeId", comment.getRecipeId(),
+                    "content", comment.getContent(),
+                    "createdAt", comment.getCreatedAt().toString(),
+                    "editedAt", comment.getEditedAt().toString()
+            )
+    ));
+}
+
 
 
     
