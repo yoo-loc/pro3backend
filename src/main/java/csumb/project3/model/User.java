@@ -14,19 +14,23 @@ public class User {
     private String username;
     private String email;
     private String password;
-    private List<String> favorites = new ArrayList<>();
+    private List<String> favorites = new ArrayList<>(); // List of favorite recipe IDs
+    private List<String> comments = new ArrayList<>(); // List of comment IDs
+    private List<String> myRecipes = new ArrayList<>(); // List of recipe IDs created by the user
 
     // Default constructor
     public User() {
     }
 
     // Parameterized constructor
-    public User(String id, String username, String email, String password, List<String> favorites) {
+    public User(String id, String username, String email, String password, List<String> favorites, List<String> comments, List<String> myRecipes) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
         this.favorites = favorites != null ? new ArrayList<>(favorites) : new ArrayList<>();
+        this.comments = comments != null ? new ArrayList<>(comments) : new ArrayList<>();
+        this.myRecipes = myRecipes != null ? new ArrayList<>(myRecipes) : new ArrayList<>();
     }
 
     // Getters and Setters
@@ -68,5 +72,55 @@ public class User {
 
     public void setFavorites(List<String> favorites) {
         this.favorites = favorites != null ? new ArrayList<>(favorites) : new ArrayList<>();
+    }
+
+    public List<String> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<String> comments) {
+        this.comments = comments != null ? new ArrayList<>(comments) : new ArrayList<>();
+    }
+
+    public List<String> getMyRecipes() {
+        return myRecipes;
+    }
+
+    public void setMyRecipes(List<String> myRecipes) {
+        this.myRecipes = myRecipes != null ? new ArrayList<>(myRecipes) : new ArrayList<>();
+    }
+
+// Favorite management
+public void addFavorite(String recipeId) {
+    if (recipeId != null && !recipeId.trim().isEmpty() && !favorites.contains(recipeId)) {
+        favorites.add(recipeId);
+    }
+}
+
+public boolean removeFavorite(String recipeId) {
+    return recipeId != null && favorites.remove(recipeId);
+}
+
+
+    // Comment management
+    public void addComment(String commentId) {
+        if (!comments.contains(commentId)) {
+            comments.add(commentId);
+        }
+    }
+
+    public boolean removeComment(String commentId) {
+        return comments.remove(commentId);
+    }
+
+    // Recipe management
+    public void addRecipe(String recipeId) {
+        if (!myRecipes.contains(recipeId)) {
+            myRecipes.add(recipeId);
+        }
+    }
+
+    public boolean removeRecipe(String recipeId) {
+        return myRecipes.remove(recipeId);
     }
 }

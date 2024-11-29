@@ -21,12 +21,11 @@ public class UserService {
     private RecipeRepository recipeRepository;
 
     // Save or update a user with simple ID logic
-    public User saveUser(User user) {
-        if (user.getId() == null || user.getId().isEmpty()) {
-            user.setId(generateSimpleId());
-        }
-        return userRepository.save(user);
+    public Optional<User> getUserById(String userId) {
+        return userRepository.findById(userId);
     }
+
+
 
     // Generate a simple sequential ID for new users
     private String generateSimpleId() {
@@ -49,10 +48,14 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
-        if (!user.getFavorites().contains(recipeId)) {
-            user.getFavorites().add(recipeId);
-            userRepository.save(user);
-        }
+        // Retrieve the recipe and add it to the favorites list
+        Optional<Recipe> recipe = recipeRepository.findById(recipeId);
+        recipe.ifPresent(r -> {
+            if (!user.getFavorites().contains(recipeId)) {
+                user.getFavorites().add(recipeId); // Add Recipe reference
+                userRepository.save(user);
+            }
+        });
     }
 
     // Remove a recipe from the user's favorites
@@ -79,8 +82,8 @@ public class UserService {
     }
 
     // Get a user by ID
-    public Optional<User> getUserById(String userId) {
-        return userRepository.findById(userId);
+    public User saveUser(User user) {
+        return userRepository.save(user);
     }
 
     // Get all users
@@ -97,6 +100,7 @@ public class UserService {
         return false;
     }
 
+    // Update user IDs to simple sequential IDs
     public void updateUserIdsToSimpleIds() {
         List<User> users = userRepository.findAll();
         int newId = 1;
@@ -107,4 +111,17 @@ public class UserService {
             newId++;
         }
     }
+
+    // Add a recipe to a user's list of created recipes
+    public void addRecipeToUser(String userId, String recipeId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            if (!user.getMyRecipes().contains(recipeId)) { // Check if recipeId is already in the list
+                user.getMyRecipes().add(recipeId);         // Add recipeId to the list
+                userRepository.save(user);                // Save the updated user
+            }
+        });
+    }
+    
+
+
 }
