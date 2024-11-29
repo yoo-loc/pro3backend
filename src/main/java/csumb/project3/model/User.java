@@ -90,16 +90,17 @@ public class User {
         this.myRecipes = myRecipes != null ? new ArrayList<>(myRecipes) : new ArrayList<>();
     }
 
-    // Favorite management
-    public void addFavorite(String recipeId) {
-        if (!favorites.contains(recipeId)) {
-            favorites.add(recipeId);
-        }
+// Favorite management
+public void addFavorite(String recipeId) {
+    if (recipeId != null && !recipeId.trim().isEmpty() && !favorites.contains(recipeId)) {
+        favorites.add(recipeId);
     }
+}
 
-    public boolean removeFavorite(String recipeId) {
-        return favorites.remove(recipeId);
-    }
+public boolean removeFavorite(String recipeId) {
+    return recipeId != null && favorites.remove(recipeId);
+}
+
 
     // Comment management
     public void addComment(String commentId) {
