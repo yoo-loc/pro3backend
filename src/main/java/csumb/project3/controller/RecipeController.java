@@ -100,12 +100,7 @@ public class RecipeController {
         return ResponseEntity.ok(userRecipes);
     }
 
-    // Add a recipe to user's favorites
-    @PostMapping("/favorites/{userId}")
-    public ResponseEntity<Void> addFavorite(@PathVariable String userId, @RequestBody String recipeId) {
-        userService.addFavorite(userId, recipeId);
-        return ResponseEntity.ok().build();
-    }
+   
 
     // Get a user's favorite recipes
     @GetMapping("/favorites/{userId}")
@@ -170,7 +165,7 @@ public ResponseEntity<List<Map<String, String>>> getCommentsForRecipe(@PathVaria
 
 
 @GetMapping("/{id}/details")
-public ResponseEntity<?> getSpecificRecipeWithComments(
+public ResponseEntity<?> getSpecificRecipeWithReferences(
         @PathVariable String id,
         HttpServletRequest request) {
     
@@ -181,33 +176,55 @@ public ResponseEntity<?> getSpecificRecipeWithComments(
     }
 
     try {
+        // Fetch the authenticated user
+        User authenticatedUser = (User) session.getAttribute("user");
+
         // Fetch the recipe by ID
         Recipe recipe = recipeService.getRecipeById(id)
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
 
-        // Fetch the comments for the recipe
-        List<String> commentIds = recipe.getComments();
-        List<Comment> comments = commentIds.isEmpty() 
-                ? Collections.emptyList() 
-                : commentService.getCommentsByIds(commentIds);
+        // Fetch comments by IDs from the recipe
+        List<Comment> comments = recipe.getComments().isEmpty()
+                ? Collections.emptyList()
+                : commentService.getCommentsByIds(recipe.getComments());
 
-        // Prepare the response
+        // Check if the recipe is in the user's favorites
+        boolean isFavorite = authenticatedUser.getFavorites().contains(recipe.getId());
+
+        // Prepare response
         Map<String, Object> response = Map.of(
-                "recipe", recipe,
-                "comments", comments
+                "recipe", Map.of(
+                        "id", recipe.getId(),
+                        "title", recipe.getTitle(),
+                        "ingredients", recipe.getIngredients(),
+                        "instructions", recipe.getInstructions(),
+                        "dietaryTags", recipe.getDietaryTags(),
+                        "imageUrl", recipe.getImageUrl(),
+                        "ownerId", recipe.getOwnerId(),
+                        "likes", recipe.getLikes()
+                ),
+                "comments", comments.stream().map(comment -> Map.of(
+                        "id", comment.getId(),
+                        "userId", comment.getUserId(),
+                        "username", comment.getUsername(),
+                        "content", comment.getContent(),
+                        "createdAt", comment.getCreatedAt(),
+                        "editedAt", comment.getEditedAt()
+                )).toList(),
+                "isFavorite", isFavorite
         );
 
         return ResponseEntity.ok(response);
     } catch (NoSuchElementException e) {
-        // Handle case when recipe is not found
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("message", "Recipe not found with ID: " + id));
     } catch (Exception e) {
-        // Handle unexpected errors
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("message", "An unexpected error occurred.", "error", e.getMessage()));
     }
 }
+
+
 
 
 
@@ -321,58 +338,6 @@ public ResponseEntity<?> removeCommentFromRecipe(
 }
 
 
-// @PatchMapping("/{recipeId}/comments/{commentId}")
-// public ResponseEntity<?> editComment(
-//         @PathVariable String recipeId,
-//         @PathVariable String commentId,
-//         @RequestBody Map<String, String> requestData,
-//         HttpServletRequest request) {
-
-//     // Check if the user is authenticated
-//     HttpSession session = request.getSession(false);
-//     if (session == null || session.getAttribute("user") == null) {
-//         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                 .body(Map.of("message", "User not authenticated."));
-//     }
-
-//     // Get the authenticated user from the session
-//     User authenticatedUser = (User) session.getAttribute("user");
-
-//     // Fetch the comment from the service
-//     Comment comment = commentService.getCommentById(commentId)
-//             .orElseThrow(() -> new RuntimeException("Comment not found with ID: " + commentId));
-
-//     // Check if the authenticated user owns the comment
-//     if (!comment.getUserId().equals(authenticatedUser.getId())) {
-//         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-//                 .body(Map.of("message", "You are not authorized to edit this comment."));
-//     }
-
-//     // Validate the new content
-//     String newContent = requestData.get("content");
-//     if (newContent == null || newContent.trim().isEmpty()) {
-//         return ResponseEntity.badRequest()
-//                 .body(Map.of("message", "Content cannot be empty."));
-//     }
-
-//     // Update the comment
-//     comment.setContent(newContent);
-//     comment.setCreatedAt(LocalDateTime.now()); // Update the timestamp to reflect the edit
-//     commentService.addComment(comment); // Save the updated comment
-
-//     // Prepare response with updated comment details
-//     return ResponseEntity.ok(Map.of(
-//             "message", "Comment updated successfully!",
-//             "comment", Map.of(
-//                     "id", comment.getId(),
-//                     "userId", comment.getUserId(),
-//                     "username", comment.getUsername(),
-//                     "recipeId", comment.getRecipeId(),
-//                     "content", comment.getContent(),
-//                     "createdAt", comment.getCreatedAt().toString()
-//             )
-//     ));
-// }
 
 @PatchMapping("/{recipeId}/comments/{commentId}")
 public ResponseEntity<?> editComment(
@@ -427,6 +392,70 @@ public ResponseEntity<?> editComment(
             )
     ));
 }
+
+@PostMapping("/{recipeId}/favorites")
+public ResponseEntity<?> addRecipeToFavorites(
+        @PathVariable String recipeId,
+        HttpServletRequest request) {
+    
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Check if the recipe exists
+    if (!recipeService.getRecipeById(recipeId).isPresent()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Recipe not found with ID: " + recipeId));
+    }
+
+    if (!authenticatedUser.getFavorites().contains(recipeId)) {
+        authenticatedUser.addFavorite(recipeId); // Use User's method to add favorite
+        userService.saveUser(authenticatedUser);
+    }
+
+    return ResponseEntity.ok(Map.of(
+        "message", "Recipe added to favorites successfully!",
+        "favorites", authenticatedUser.getFavorites()
+    ));
+}
+
+@DeleteMapping("/{recipeId}/favorites")
+public ResponseEntity<?> removeRecipeFromFavorites(
+        @PathVariable String recipeId,
+        HttpServletRequest request) {
+    
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Check if the recipe exists (if necessary for your business logic)
+    if (!recipeService.getRecipeById(recipeId).isPresent()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Recipe not found with ID: " + recipeId));
+    }
+
+    if (authenticatedUser.getFavorites().contains(recipeId)) {
+        authenticatedUser.removeFavorite(recipeId); // Use User's method to remove favorite
+        userService.saveUser(authenticatedUser);
+    }
+
+    return ResponseEntity.ok(Map.of(
+        "message", "Recipe removed from favorites successfully!",
+        "favorites", authenticatedUser.getFavorites()
+    ));
+}
+
+
+
+
 
 
 
