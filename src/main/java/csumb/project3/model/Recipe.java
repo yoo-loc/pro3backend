@@ -3,6 +3,7 @@ package csumb.project3.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class Recipe {
     private String ownerId; // ID of the user who created the recipe
     private List<String> comments = new ArrayList<>(); // List of comment IDs associated with the recipe
     private int likes; // Number of likes for the recipe
-
+    private LocalDateTime createdAt = LocalDateTime.now(); 
     // Constructors
     public Recipe() {
     }
@@ -158,5 +159,13 @@ public class Recipe {
                 ", likes=" + likes +
                 ", comments=" + comments +
                 '}';
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
