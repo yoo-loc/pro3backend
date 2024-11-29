@@ -477,7 +477,15 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
     List<String> commentIds = recipe.getComments();
     if (commentIds != null && !commentIds.isEmpty()) {
         for (String commentId : commentIds) {
-            commentService.deleteCommentById(commentId);
+            // Remove references to these comments in users
+            List<User> allUsers = userService.getAllUsers();
+            for (User user : allUsers) {
+                if (user.getComments().contains(commentId)) {
+                    user.getComments().remove(commentId);
+                    userService.saveUser(user);
+                }
+            }
+            commentService.deleteCommentById(commentId); // Delete the comment
         }
     }
 
@@ -501,7 +509,6 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
 
     return ResponseEntity.noContent().build();
 }
-
 
 
 
