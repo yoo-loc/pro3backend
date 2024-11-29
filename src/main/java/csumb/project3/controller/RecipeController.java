@@ -58,6 +58,9 @@ public class RecipeController {
                     .body(Map.of("message", "Recipe title, ingredients, and instructions are required."));
         }
     
+        // Set the creation timestamp
+        recipe.setCreatedAt(LocalDateTime.now());
+    
         // Save the recipe
         Recipe savedRecipe = recipeService.saveRecipe(recipe);
     
@@ -71,6 +74,7 @@ public class RecipeController {
                     "recipe", savedRecipe
                 ));
     }
+    
     
 
 
@@ -109,12 +113,12 @@ public class RecipeController {
         return ResponseEntity.ok(favoriteRecipes);
     }
 
-    // Delete a recipe by ID
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRecipe(@PathVariable String id) {
-        recipeService.deleteRecipeById(id);
-        return ResponseEntity.noContent().build();
-    }
+    // // Delete a recipe by ID
+    // @DeleteMapping("/{id}")
+    // public ResponseEntity<Void> deleteRecipe(@PathVariable String id) {
+    //     recipeService.deleteRecipeById(id);
+    //     return ResponseEntity.noContent().build();
+    // }
 
     // Share a recipe (repost)
     @PostMapping("/share")
@@ -453,6 +457,50 @@ public ResponseEntity<?> removeRecipeFromFavorites(
     ));
 }
 
+
+
+
+@DeleteMapping("/{id}")
+public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    // Check if the recipe exists
+    Recipe recipe = recipeService.getRecipeById(id)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
+
+    // Remove associated comments
+    List<String> commentIds = recipe.getComments();
+    if (commentIds != null && !commentIds.isEmpty()) {
+        for (String commentId : commentIds) {
+            commentService.deleteCommentById(commentId);
+        }
+    }
+
+    // Remove recipe from users' favorites
+    List<User> allUsers = userService.getAllUsers(); // Ensure you have a method to fetch all users
+    for (User user : allUsers) {
+        if (user.getFavorites().contains(id)) {
+            user.getFavorites().remove(id);
+            userService.saveUser(user);
+        }
+    }
+
+    // Remove recipe from owner's `myRecipes`
+    User owner = userService.getUserById(recipe.getOwnerId())
+            .orElseThrow(() -> new RuntimeException("Owner not found with ID: " + recipe.getOwnerId()));
+    owner.getMyRecipes().remove(id);
+    userService.saveUser(owner);
+
+    // Delete the recipe
+    recipeService.deleteRecipeById(id);
+
+    return ResponseEntity.noContent().build();
+}
 
 
 
