@@ -6,19 +6,27 @@
     import org.springframework.http.HttpStatus;
     import org.springframework.http.ResponseEntity;
 
-    import csumb.project3.model.User;
-    import csumb.project3.service.UserService;
+import csumb.project3.model.Recipe;
+import csumb.project3.model.User;
+import csumb.project3.service.RecipeService;
+import csumb.project3.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
-    import java.util.List;
+import java.util.Collections;
+import java.util.List;
     import java.util.Map;
 
     @RestController
     @RequestMapping("/api/users")
-    @CrossOrigin(origins = "http://localhost:3000") // Allow requests from the frontend
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     public class UserController {
 
         @Autowired
         private UserService userService;
+
+         @Autowired
+    private RecipeService recipeService;
 
         // Fetch all users
         @GetMapping
@@ -158,4 +166,34 @@
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found with ID: " + userId));
         }
     }
+
+
+@GetMapping("/session")
+public ResponseEntity<?> getUserFromSession(HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Fetch recipe details for favorites
+    List<String> favoriteIds = authenticatedUser.getFavorites();
+    List<Recipe> favoriteRecipes = favoriteIds.isEmpty()
+            ? Collections.emptyList()
+            : recipeService.getRecipesByIds(favoriteIds); // Fetch recipes by IDs
+
+    return ResponseEntity.ok(Map.of(
+            "id", authenticatedUser.getId(),
+            "username", authenticatedUser.getUsername(),
+            "email", authenticatedUser.getEmail(),
+            "favorites", favoriteRecipes // Include detailed recipe information
+    ));
+}
+
+
+
+
+
     }
