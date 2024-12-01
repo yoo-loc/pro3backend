@@ -192,6 +192,56 @@ public ResponseEntity<?> getUserFromSession(HttpServletRequest request) {
     ));
 }
 
+// Update user information (username, email, password)
+@PutMapping("/{id}/update-info")
+public ResponseEntity<?> updateUserInfo(@PathVariable String id, @RequestBody Map<String, String> updateData) {
+    Optional<User> userOpt = userService.getUserById(id);
+
+    if (userOpt.isPresent()) {
+        User user = userOpt.get();
+
+        // Check and update username
+        String newUsername = updateData.get("username");
+        if (newUsername != null && !newUsername.equals(user.getUsername())) {
+            if (userService.getUserByUsername(newUsername).isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Username is already taken."));
+            }
+            user.setUsername(newUsername);
+        }
+
+        // Check and update email
+        String newEmail = updateData.get("email");
+        if (newEmail != null && !newEmail.equals(user.getEmail())) {
+            if (userService.getUserByEmail(newEmail).isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Email is already taken."));
+            }
+            user.setEmail(newEmail);
+        }
+
+        // Update password
+        String newPassword = updateData.get("password");
+        if (newPassword != null) {
+            user.setPassword(newPassword); 
+        }
+
+        // Save updated user
+        User updatedUser = userService.saveUser(user);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "User information updated successfully.",
+                "id", updatedUser.getId(),
+                "username", updatedUser.getUsername(),
+                "email", updatedUser.getEmail()
+        ));
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "User not found with ID: " + id));
+    }
+}
+
+
 
 
 

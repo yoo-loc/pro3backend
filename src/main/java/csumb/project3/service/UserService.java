@@ -25,6 +25,13 @@ public class UserService {
         return userRepository.findById(userId);
     }
 
+  
+
+    // Find a user by their username
+    public Optional<User> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
 
 
     // Generate a simple sequential ID for new users
@@ -121,6 +128,9 @@ public class UserService {
             }
         });
     }
+
+    
+    
     
 
 
