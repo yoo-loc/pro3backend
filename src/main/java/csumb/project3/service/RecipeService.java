@@ -110,5 +110,10 @@ public class RecipeService {
         recipe.removeComment(commentId); // Call the removeComment method
         return recipeRepository.save(recipe); // Save the updated recipe
     }
+
+     // New Method: Get recipes by a list of IDs
+     public List<Recipe> getRecipesByIds(List<String> recipeIds) {
+        return recipeRepository.findAllById(recipeIds);
+    }
     
 }

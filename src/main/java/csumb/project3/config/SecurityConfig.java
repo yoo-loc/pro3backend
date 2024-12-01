@@ -33,6 +33,7 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/signup",
                                 "/api/auth/logout",
+                                "api/users/**",
                                 "/recipes/all",
                                 "/recipes/**", // Adjust as needed for public routes
                                 "/public/**" // Allow public endpoints (optional)

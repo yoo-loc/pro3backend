@@ -6,19 +6,27 @@
     import org.springframework.http.HttpStatus;
     import org.springframework.http.ResponseEntity;
 
-    import csumb.project3.model.User;
-    import csumb.project3.service.UserService;
+import csumb.project3.model.Recipe;
+import csumb.project3.model.User;
+import csumb.project3.service.RecipeService;
+import csumb.project3.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
-    import java.util.List;
+import java.util.Collections;
+import java.util.List;
     import java.util.Map;
 
     @RestController
     @RequestMapping("/api/users")
-    @CrossOrigin(origins = "http://localhost:3000") // Allow requests from the frontend
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     public class UserController {
 
         @Autowired
         private UserService userService;
+
+         @Autowired
+    private RecipeService recipeService;
 
         // Fetch all users
         @GetMapping
@@ -158,4 +166,84 @@
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found with ID: " + userId));
         }
     }
+
+
+@GetMapping("/session")
+public ResponseEntity<?> getUserFromSession(HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Fetch recipe details for favorites
+    List<String> favoriteIds = authenticatedUser.getFavorites();
+    List<Recipe> favoriteRecipes = favoriteIds.isEmpty()
+            ? Collections.emptyList()
+            : recipeService.getRecipesByIds(favoriteIds); // Fetch recipes by IDs
+
+    return ResponseEntity.ok(Map.of(
+            "id", authenticatedUser.getId(),
+            "username", authenticatedUser.getUsername(),
+            "email", authenticatedUser.getEmail(),
+            "favorites", favoriteRecipes // Include detailed recipe information
+    ));
+}
+
+// Update user information (username, email, password)
+@PutMapping("/{id}/update-info")
+public ResponseEntity<?> updateUserInfo(@PathVariable String id, @RequestBody Map<String, String> updateData) {
+    Optional<User> userOpt = userService.getUserById(id);
+
+    if (userOpt.isPresent()) {
+        User user = userOpt.get();
+
+        // Check and update username
+        String newUsername = updateData.get("username");
+        if (newUsername != null && !newUsername.equals(user.getUsername())) {
+            if (userService.getUserByUsername(newUsername).isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Username is already taken."));
+            }
+            user.setUsername(newUsername);
+        }
+
+        // Check and update email
+        String newEmail = updateData.get("email");
+        if (newEmail != null && !newEmail.equals(user.getEmail())) {
+            if (userService.getUserByEmail(newEmail).isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Email is already taken."));
+            }
+            user.setEmail(newEmail);
+        }
+
+        // Update password
+        String newPassword = updateData.get("password");
+        if (newPassword != null) {
+            user.setPassword(newPassword); 
+        }
+
+        // Save updated user
+        User updatedUser = userService.saveUser(user);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "User information updated successfully.",
+                "id", updatedUser.getId(),
+                "username", updatedUser.getUsername(),
+                "email", updatedUser.getEmail()
+        ));
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "User not found with ID: " + id));
+    }
+}
+
+
+
+
+
+
     }
