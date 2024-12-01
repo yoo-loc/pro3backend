@@ -3,6 +3,8 @@ package csumb.project3.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,95 +15,46 @@ public class Recipe {
     @Id
     private String id; // MongoDB IDs are typically Strings
     private String title;
-    private String ingredients; // Ingredients as plain text or serialized format
-    private String instructions; // Cooking instructions
+    private String ingredients; // Ingredients as plain text
+    private String instructions; // Cooking instructions as plain text
     private List<String> dietaryTags = new ArrayList<>(); // Dietary tags (e.g., vegan, gluten-free)
     private String imageUrl; // Image URL for the recipe
     private String ownerId; // ID of the user who created the recipe
     private List<String> comments = new ArrayList<>(); // List of comment IDs associated with the recipe
-    private int likes; // Number of likes for the recipe
-    private LocalDateTime createdAt = LocalDateTime.now(); 
-    private int favoritesCount = 0; 
-    // Constructors
-    public Recipe() {
-    }
+    private int likes = 0; // Number of likes for the recipe
+    
+    private int favoritesCount = 0; // Number of times this recipe is marked as favorite
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+private LocalDateTime createdAt = LocalDateTime.now();
 
-    public Recipe(String id, String title, String ingredients, String instructions, List<String> dietaryTags, String url, String imageUrl, String ownerId, int likes) {
+    // Constructors
+    public Recipe() {}
+
+    public Recipe(String id, String title, String ingredients, String instructions, List<String> dietaryTags, String imageUrl, String ownerId, int likes) {
         this.id = id;
         this.title = title;
         this.ingredients = ingredients;
         this.instructions = instructions;
         this.dietaryTags = dietaryTags != null ? new ArrayList<>(dietaryTags) : new ArrayList<>();
-
         this.imageUrl = imageUrl;
         this.ownerId = ownerId;
         this.likes = likes;
     }
 
-    // Getters and Setters for Comments
-    public List<String> getComments() {
-        return comments;
-    }
+    // Getter and Setter Methods
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setComments(List<String> comments) {
-        this.comments = comments;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    // Add a comment to the recipe
-    public void addComment(String commentId) {
-        if (!comments.contains(commentId)) {
-            this.comments.add(commentId);
-        } else {
-            System.out.println("Comment ID " + commentId + " already exists.");
-        }
-    }
+    public String getIngredients() { return ingredients; }
+    public void setIngredients(String ingredients) { this.ingredients = ingredients; }
 
-    // Remove a comment from the recipe by ID
-    public void removeComment(String commentId) {
-        if (comments.contains(commentId)) {
-            this.comments.removeIf(comment -> comment.equals(commentId));
-        } else {
-            System.out.println("Comment ID " + commentId + " not found in recipe.");
-        }
-    }
+    public String getInstructions() { return instructions; }
+    public void setInstructions(String instructions) { this.instructions = instructions; }
 
-    // Getters and Setters for Other Fields
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getIngredients() {
-        return ingredients;
-    }
-
-    public void setIngredients(String ingredients) {
-        this.ingredients = ingredients;
-    }
-
-    public String getInstructions() {
-        return instructions;
-    }
-
-    public void setInstructions(String instructions) {
-        this.instructions = instructions;
-    }
-
-    public List<String> getDietaryTags() {
-        return dietaryTags;
-    }
-
+    public List<String> getDietaryTags() { return dietaryTags; }
     public void setDietaryTags(List<String> dietaryTags) {
         this.dietaryTags = dietaryTags != null ? new ArrayList<>(dietaryTags) : new ArrayList<>();
     }
@@ -116,36 +69,34 @@ public class Recipe {
         dietaryTags.remove(tag);
     }
 
-   
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getOwnerId() { return ownerId; }
+    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+
+    public int getLikes() { return likes; }
+    public void setLikes(int likes) { this.likes = likes; }
+
+    public int getFavoritesCount() { return favoritesCount; }
+    public void setFavoritesCount(int favoritesCount) { this.favoritesCount = favoritesCount; }
+
+    public List<String> getComments() { return comments; }
+    public void setComments(List<String> comments) { this.comments = comments; }
+
+    public void addComment(String commentId) {
+        if (!comments.contains(commentId)) {
+            comments.add(commentId);
+        }
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void removeComment(String commentId) {
+        comments.remove(commentId);
     }
 
-    public String getOwnerId() {
-        return ownerId;
-    }
-
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
-    }
-
-    public int getLikes() {
-        return likes;
-    }
-
-    public void setLikes(int likes) {
-        this.likes = likes;
-    }
-
-    // Utility Methods
-    public boolean isOwnedBy(String userId) {
-        return this.ownerId != null && this.ownerId.equals(userId);
-    }
+    // Increment or decrement favorites count
+    public void incrementFavoritesCount() { this.favoritesCount++; }
+    public void decrementFavoritesCount() { this.favoritesCount = Math.max(this.favoritesCount - 1, 0); }
 
     @Override
     public String toString() {
@@ -158,25 +109,12 @@ public class Recipe {
                 ", imageUrl='" + imageUrl + '\'' +
                 ", ownerId='" + ownerId + '\'' +
                 ", likes=" + likes +
+                ", favoritesCount=" + favoritesCount +
                 ", comments=" + comments +
                 '}';
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
-   // Getter for favoritesCount
-   public int getFavoritesCount() {
-    return favoritesCount;
-}
-
-// Setter for favoritesCount
-public void setFavoritesCount(int favoritesCount) {
-    this.favoritesCount = favoritesCount;
-}
 }

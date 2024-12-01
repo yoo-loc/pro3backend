@@ -189,20 +189,22 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
 
         // Fetch comments by IDs from the recipe
-        List<Comment> comments = recipe.getComments().isEmpty()
+        List<Comment> comments = recipe.getComments() == null || recipe.getComments().isEmpty()
                 ? Collections.emptyList()
                 : commentService.getCommentsByIds(recipe.getComments());
 
         // Check if the recipe is in the user's favorites
-        boolean isFavorite = authenticatedUser.getFavorites().contains(recipe.getId());
+        boolean isFavorite = authenticatedUser.getFavorites() != null &&
+                authenticatedUser.getFavorites().contains(recipe.getId());
 
         // Prepare response
         Map<String, String> response = new LinkedHashMap<>();
         response.put("id", recipe.getId());
         response.put("title", recipe.getTitle());
-        response.put("ingredients", String.join(", ", recipe.getIngredients())); // Convert list to string
-        response.put("instructions", String.join(", ", recipe.getInstructions())); // Convert list to string
-        response.put("dietaryTags", String.join(", ", recipe.getDietaryTags())); // Convert list to string
+        response.put("ingredients", recipe.getIngredients() != null ? recipe.getIngredients() : ""); // Ensure null-safe
+        response.put("instructions", recipe.getInstructions() != null ? recipe.getInstructions() : ""); // Ensure null-safe
+        response.put("dietaryTags", recipe.getDietaryTags() != null ? 
+                String.join(", ", recipe.getDietaryTags()) : "None"); // Handle null/empty dietary tags
         response.put("imageUrl", recipe.getImageUrl() != null ? recipe.getImageUrl() : "");
         response.put("ownerId", recipe.getOwnerId());
         response.put("favoritesCount", String.valueOf(recipe.getFavoritesCount())); // Add favorites count
@@ -233,6 +235,7 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
                 .body(Map.of("message", "An unexpected error occurred.", "error", e.getMessage()));
     }
 }
+
 
 
 
@@ -478,14 +481,24 @@ public ResponseEntity<?> removeRecipeFromFavorites(
 public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletRequest request) {
     HttpSession session = request.getSession(false);
 
+    // Check if the user is authenticated
     if (session == null || session.getAttribute("user") == null) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("message", "User not authenticated."));
     }
 
+    // Get the authenticated user
+    User authenticatedUser = (User) session.getAttribute("user");
+
     // Check if the recipe exists
     Recipe recipe = recipeService.getRecipeById(id)
             .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
+
+    // Verify if the user owns the recipe
+    if (!recipe.getOwnerId().equals(authenticatedUser.getId())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "You are not authorized to delete this recipe."));
+    }
 
     // Remove associated comments
     List<String> commentIds = recipe.getComments();
@@ -503,8 +516,8 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
         }
     }
 
-    // Remove recipe from users' favorites
-    List<User> allUsers = userService.getAllUsers(); // Ensure you have a method to fetch all users
+    // Remove recipe from all users' favorites
+    List<User> allUsers = userService.getAllUsers();
     for (User user : allUsers) {
         if (user.getFavorites().contains(id)) {
             user.getFavorites().remove(id);
@@ -512,17 +525,79 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
         }
     }
 
-    // Remove recipe from owner's `myRecipes`
-    User owner = userService.getUserById(recipe.getOwnerId())
-            .orElseThrow(() -> new RuntimeException("Owner not found with ID: " + recipe.getOwnerId()));
-    owner.getMyRecipes().remove(id);
-    userService.saveUser(owner);
+    // Remove the recipe from the owner's `myRecipes`
+    authenticatedUser.getMyRecipes().remove(id);
+    userService.saveUser(authenticatedUser);
 
-    // Delete the recipe
+    // Delete the recipe itself
     recipeService.deleteRecipeById(id);
 
     return ResponseEntity.noContent().build();
 }
+
+
+@PatchMapping("/{recipeId}")
+public ResponseEntity<?> editRecipe(
+        @PathVariable String recipeId,
+        @RequestBody Map<String, String> updateData,
+        HttpServletRequest request) {
+
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    // Get the authenticated user from the session
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Fetch the recipe from the database
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
+
+    // Check if the authenticated user is the owner of the recipe
+    if (!recipe.getOwnerId().equals(authenticatedUser.getId())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "You are not authorized to edit this recipe."));
+    }
+
+    // Update the recipe with provided data
+    if (updateData.containsKey("title")) {
+        recipe.setTitle(updateData.get("title"));
+    }
+    if (updateData.containsKey("ingredients")) {
+        recipe.setIngredients(updateData.get("ingredients")); // Treat ingredients as plain text
+    }
+    if (updateData.containsKey("instructions")) {
+        recipe.setInstructions(updateData.get("instructions")); // Treat instructions as plain text
+    }
+    if (updateData.containsKey("dietaryTags")) {
+        recipe.setDietaryTags(List.of(updateData.get("dietaryTags").split(",\\s*"))); // Convert comma-separated string to list
+    }
+    if (updateData.containsKey("imageUrl")) {
+        recipe.setImageUrl(updateData.get("imageUrl"));
+    }
+
+    // Save the updated recipe
+    Recipe updatedRecipe = recipeService.saveRecipe(recipe);
+
+    return ResponseEntity.ok(Map.of(
+            "message", "Recipe updated successfully!",
+            "recipe", Map.of(
+                    "id", updatedRecipe.getId(),
+                    "title", updatedRecipe.getTitle(),
+                    "ingredients", updatedRecipe.getIngredients(), // Return ingredients as plain text
+                    "instructions", updatedRecipe.getInstructions(), // Return instructions as plain text
+                    "dietaryTags", String.join(", ", updatedRecipe.getDietaryTags()), // Join dietary tags for display
+                    "imageUrl", updatedRecipe.getImageUrl(),
+                    "ownerId", updatedRecipe.getOwnerId(),
+                    "favoritesCount", String.valueOf(updatedRecipe.getFavoritesCount()),
+                    "likes", String.valueOf(updatedRecipe.getLikes())
+            )
+    ));
+}
+
+
 
 
 
