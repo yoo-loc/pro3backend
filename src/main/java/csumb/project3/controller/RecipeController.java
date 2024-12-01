@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -188,37 +189,44 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
                 .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
 
         // Fetch comments by IDs from the recipe
-        List<Comment> comments = recipe.getComments().isEmpty()
+        List<Comment> comments = recipe.getComments() == null || recipe.getComments().isEmpty()
                 ? Collections.emptyList()
                 : commentService.getCommentsByIds(recipe.getComments());
 
         // Check if the recipe is in the user's favorites
-        boolean isFavorite = authenticatedUser.getFavorites().contains(recipe.getId());
+        boolean isFavorite = authenticatedUser.getFavorites() != null &&
+                authenticatedUser.getFavorites().contains(recipe.getId());
 
         // Prepare response
-        Map<String, Object> response = Map.of(
-                "recipe", Map.of(
-                        "id", recipe.getId(),
-                        "title", recipe.getTitle(),
-                        "ingredients", recipe.getIngredients(),
-                        "instructions", recipe.getInstructions(),
-                        "dietaryTags", recipe.getDietaryTags(),
-                        "imageUrl", recipe.getImageUrl(),
-                        "ownerId", recipe.getOwnerId(),
-                        "likes", recipe.getLikes()
-                ),
-                "comments", comments.stream().map(comment -> Map.of(
-                        "id", comment.getId(),
-                        "userId", comment.getUserId(),
-                        "username", comment.getUsername(),
-                        "content", comment.getContent(),
-                        "createdAt", comment.getCreatedAt(),
-                        "editedAt", comment.getEditedAt()
-                )).toList(),
-                "isFavorite", isFavorite
-        );
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("id", recipe.getId());
+        response.put("title", recipe.getTitle());
+        response.put("ingredients", recipe.getIngredients() != null ? recipe.getIngredients() : ""); // Ensure null-safe
+        response.put("instructions", recipe.getInstructions() != null ? recipe.getInstructions() : ""); // Ensure null-safe
+        response.put("dietaryTags", recipe.getDietaryTags() != null ? 
+                String.join(", ", recipe.getDietaryTags()) : "None"); // Handle null/empty dietary tags
+        response.put("imageUrl", recipe.getImageUrl() != null ? recipe.getImageUrl() : "");
+        response.put("ownerId", recipe.getOwnerId());
+        response.put("favoritesCount", String.valueOf(recipe.getFavoritesCount())); // Add favorites count
+        response.put("likes", String.valueOf(recipe.getLikes())); // Convert likes to string
+        response.put("isFavorite", String.valueOf(isFavorite)); // Convert boolean to string
+
+        // Add comments to the response
+        for (int i = 0; i < comments.size(); i++) {
+            Comment comment = comments.get(i);
+            String prefix = "comment" + (i + 1) + "_";
+            response.put(prefix + "id", comment.getId());
+            response.put(prefix + "userId", comment.getUserId());
+            response.put(prefix + "username", userService.getUserById(comment.getUserId())
+                    .map(User::getUsername)
+                    .orElse("Unknown User"));
+            response.put(prefix + "content", comment.getContent());
+            response.put(prefix + "createdAt", comment.getCreatedAt() != null ? comment.getCreatedAt().toString() : "");
+            response.put(prefix + "editedAt", comment.getEditedAt() != null ? comment.getEditedAt().toString() : "");
+        }
 
         return ResponseEntity.ok(response);
+
     } catch (NoSuchElementException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("message", "Recipe not found with ID: " + id));
@@ -227,6 +235,8 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
                 .body(Map.of("message", "An unexpected error occurred.", "error", e.getMessage()));
     }
 }
+
+
 
 
 
@@ -397,11 +407,11 @@ public ResponseEntity<?> editComment(
     ));
 }
 
+
 @PostMapping("/{recipeId}/favorites")
 public ResponseEntity<?> addRecipeToFavorites(
         @PathVariable String recipeId,
         HttpServletRequest request) {
-    
     HttpSession session = request.getSession(false);
     if (session == null || session.getAttribute("user") == null) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -410,22 +420,25 @@ public ResponseEntity<?> addRecipeToFavorites(
 
     User authenticatedUser = (User) session.getAttribute("user");
 
-    // Check if the recipe exists
-    if (!recipeService.getRecipeById(recipeId).isPresent()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", "Recipe not found with ID: " + recipeId));
-    }
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
 
     if (!authenticatedUser.getFavorites().contains(recipeId)) {
-        authenticatedUser.addFavorite(recipeId); // Use User's method to add favorite
+        authenticatedUser.addFavorite(recipeId); // Add to user's favorites
         userService.saveUser(authenticatedUser);
+
+        // Increment favorites count in the recipe
+        recipe.setFavoritesCount(recipe.getFavoritesCount() + 1);
+        recipeService.saveRecipe(recipe);
     }
 
     return ResponseEntity.ok(Map.of(
         "message", "Recipe added to favorites successfully!",
-        "favorites", authenticatedUser.getFavorites()
+        "favoritesCount", recipe.getFavoritesCount()
     ));
 }
+
+
 
 @DeleteMapping("/{recipeId}/favorites")
 public ResponseEntity<?> removeRecipeFromFavorites(
@@ -440,22 +453,26 @@ public ResponseEntity<?> removeRecipeFromFavorites(
 
     User authenticatedUser = (User) session.getAttribute("user");
 
-    // Check if the recipe exists (if necessary for your business logic)
-    if (!recipeService.getRecipeById(recipeId).isPresent()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", "Recipe not found with ID: " + recipeId));
-    }
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
 
     if (authenticatedUser.getFavorites().contains(recipeId)) {
-        authenticatedUser.removeFavorite(recipeId); // Use User's method to remove favorite
+        authenticatedUser.removeFavorite(recipeId); // Remove from user's favorites
         userService.saveUser(authenticatedUser);
+
+        // Decrement favorites count in the recipe
+        if (recipe.getFavoritesCount() > 0) {
+            recipe.setFavoritesCount(recipe.getFavoritesCount() - 1);
+            recipeService.saveRecipe(recipe);
+        }
     }
 
     return ResponseEntity.ok(Map.of(
         "message", "Recipe removed from favorites successfully!",
-        "favorites", authenticatedUser.getFavorites()
+        "favoritesCount", recipe.getFavoritesCount()
     ));
 }
+
 
 
 
@@ -464,14 +481,24 @@ public ResponseEntity<?> removeRecipeFromFavorites(
 public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletRequest request) {
     HttpSession session = request.getSession(false);
 
+    // Check if the user is authenticated
     if (session == null || session.getAttribute("user") == null) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("message", "User not authenticated."));
     }
 
+    // Get the authenticated user
+    User authenticatedUser = (User) session.getAttribute("user");
+
     // Check if the recipe exists
     Recipe recipe = recipeService.getRecipeById(id)
             .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + id));
+
+    // Verify if the user owns the recipe
+    if (!recipe.getOwnerId().equals(authenticatedUser.getId())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "You are not authorized to delete this recipe."));
+    }
 
     // Remove associated comments
     List<String> commentIds = recipe.getComments();
@@ -489,8 +516,8 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
         }
     }
 
-    // Remove recipe from users' favorites
-    List<User> allUsers = userService.getAllUsers(); // Ensure you have a method to fetch all users
+    // Remove recipe from all users' favorites
+    List<User> allUsers = userService.getAllUsers();
     for (User user : allUsers) {
         if (user.getFavorites().contains(id)) {
             user.getFavorites().remove(id);
@@ -498,17 +525,79 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
         }
     }
 
-    // Remove recipe from owner's `myRecipes`
-    User owner = userService.getUserById(recipe.getOwnerId())
-            .orElseThrow(() -> new RuntimeException("Owner not found with ID: " + recipe.getOwnerId()));
-    owner.getMyRecipes().remove(id);
-    userService.saveUser(owner);
+    // Remove the recipe from the owner's `myRecipes`
+    authenticatedUser.getMyRecipes().remove(id);
+    userService.saveUser(authenticatedUser);
 
-    // Delete the recipe
+    // Delete the recipe itself
     recipeService.deleteRecipeById(id);
 
     return ResponseEntity.noContent().build();
 }
+
+
+@PatchMapping("/{recipeId}")
+public ResponseEntity<?> editRecipe(
+        @PathVariable String recipeId,
+        @RequestBody Map<String, String> updateData,
+        HttpServletRequest request) {
+
+    HttpSession session = request.getSession(false);
+    if (session == null || session.getAttribute("user") == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "User not authenticated."));
+    }
+
+    // Get the authenticated user from the session
+    User authenticatedUser = (User) session.getAttribute("user");
+
+    // Fetch the recipe from the database
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
+
+    // Check if the authenticated user is the owner of the recipe
+    if (!recipe.getOwnerId().equals(authenticatedUser.getId())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "You are not authorized to edit this recipe."));
+    }
+
+    // Update the recipe with provided data
+    if (updateData.containsKey("title")) {
+        recipe.setTitle(updateData.get("title"));
+    }
+    if (updateData.containsKey("ingredients")) {
+        recipe.setIngredients(updateData.get("ingredients")); // Treat ingredients as plain text
+    }
+    if (updateData.containsKey("instructions")) {
+        recipe.setInstructions(updateData.get("instructions")); // Treat instructions as plain text
+    }
+    if (updateData.containsKey("dietaryTags")) {
+        recipe.setDietaryTags(List.of(updateData.get("dietaryTags").split(",\\s*"))); // Convert comma-separated string to list
+    }
+    if (updateData.containsKey("imageUrl")) {
+        recipe.setImageUrl(updateData.get("imageUrl"));
+    }
+
+    // Save the updated recipe
+    Recipe updatedRecipe = recipeService.saveRecipe(recipe);
+
+    return ResponseEntity.ok(Map.of(
+            "message", "Recipe updated successfully!",
+            "recipe", Map.of(
+                    "id", updatedRecipe.getId(),
+                    "title", updatedRecipe.getTitle(),
+                    "ingredients", updatedRecipe.getIngredients(), // Return ingredients as plain text
+                    "instructions", updatedRecipe.getInstructions(), // Return instructions as plain text
+                    "dietaryTags", String.join(", ", updatedRecipe.getDietaryTags()), // Join dietary tags for display
+                    "imageUrl", updatedRecipe.getImageUrl(),
+                    "ownerId", updatedRecipe.getOwnerId(),
+                    "favoritesCount", String.valueOf(updatedRecipe.getFavoritesCount()),
+                    "likes", String.valueOf(updatedRecipe.getLikes())
+            )
+    ));
+}
+
+
 
 
 
