@@ -21,6 +21,7 @@ public class Recipe {
     private List<String> comments = new ArrayList<>(); // List of comment IDs associated with the recipe
     private int likes; // Number of likes for the recipe
     private LocalDateTime createdAt = LocalDateTime.now(); 
+    private int favoritesCount = 0; 
     // Constructors
     public Recipe() {
     }
@@ -168,4 +169,14 @@ public class Recipe {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+   // Getter for favoritesCount
+   public int getFavoritesCount() {
+    return favoritesCount;
+}
+
+// Setter for favoritesCount
+public void setFavoritesCount(int favoritesCount) {
+    this.favoritesCount = favoritesCount;
+}
 }

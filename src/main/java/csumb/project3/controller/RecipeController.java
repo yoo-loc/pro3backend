@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -196,29 +197,34 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
         boolean isFavorite = authenticatedUser.getFavorites().contains(recipe.getId());
 
         // Prepare response
-        Map<String, Object> response = Map.of(
-                "recipe", Map.of(
-                        "id", recipe.getId(),
-                        "title", recipe.getTitle(),
-                        "ingredients", recipe.getIngredients(),
-                        "instructions", recipe.getInstructions(),
-                        "dietaryTags", recipe.getDietaryTags(),
-                        "imageUrl", recipe.getImageUrl(),
-                        "ownerId", recipe.getOwnerId(),
-                        "likes", recipe.getLikes()
-                ),
-                "comments", comments.stream().map(comment -> Map.of(
-                        "id", comment.getId(),
-                        "userId", comment.getUserId(),
-                        "username", comment.getUsername(),
-                        "content", comment.getContent(),
-                        "createdAt", comment.getCreatedAt(),
-                        "editedAt", comment.getEditedAt()
-                )).toList(),
-                "isFavorite", isFavorite
-        );
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("id", recipe.getId());
+        response.put("title", recipe.getTitle());
+        response.put("ingredients", String.join(", ", recipe.getIngredients())); // Convert list to string
+        response.put("instructions", String.join(", ", recipe.getInstructions())); // Convert list to string
+        response.put("dietaryTags", String.join(", ", recipe.getDietaryTags())); // Convert list to string
+        response.put("imageUrl", recipe.getImageUrl() != null ? recipe.getImageUrl() : "");
+        response.put("ownerId", recipe.getOwnerId());
+        response.put("favoritesCount", String.valueOf(recipe.getFavoritesCount())); // Add favorites count
+        response.put("likes", String.valueOf(recipe.getLikes())); // Convert likes to string
+        response.put("isFavorite", String.valueOf(isFavorite)); // Convert boolean to string
+
+        // Add comments to the response
+        for (int i = 0; i < comments.size(); i++) {
+            Comment comment = comments.get(i);
+            String prefix = "comment" + (i + 1) + "_";
+            response.put(prefix + "id", comment.getId());
+            response.put(prefix + "userId", comment.getUserId());
+            response.put(prefix + "username", userService.getUserById(comment.getUserId())
+                    .map(User::getUsername)
+                    .orElse("Unknown User"));
+            response.put(prefix + "content", comment.getContent());
+            response.put(prefix + "createdAt", comment.getCreatedAt() != null ? comment.getCreatedAt().toString() : "");
+            response.put(prefix + "editedAt", comment.getEditedAt() != null ? comment.getEditedAt().toString() : "");
+        }
 
         return ResponseEntity.ok(response);
+
     } catch (NoSuchElementException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("message", "Recipe not found with ID: " + id));
@@ -227,6 +233,7 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
                 .body(Map.of("message", "An unexpected error occurred.", "error", e.getMessage()));
     }
 }
+
 
 
 
@@ -397,11 +404,11 @@ public ResponseEntity<?> editComment(
     ));
 }
 
+
 @PostMapping("/{recipeId}/favorites")
 public ResponseEntity<?> addRecipeToFavorites(
         @PathVariable String recipeId,
         HttpServletRequest request) {
-    
     HttpSession session = request.getSession(false);
     if (session == null || session.getAttribute("user") == null) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -410,22 +417,25 @@ public ResponseEntity<?> addRecipeToFavorites(
 
     User authenticatedUser = (User) session.getAttribute("user");
 
-    // Check if the recipe exists
-    if (!recipeService.getRecipeById(recipeId).isPresent()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", "Recipe not found with ID: " + recipeId));
-    }
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
 
     if (!authenticatedUser.getFavorites().contains(recipeId)) {
-        authenticatedUser.addFavorite(recipeId); // Use User's method to add favorite
+        authenticatedUser.addFavorite(recipeId); // Add to user's favorites
         userService.saveUser(authenticatedUser);
+
+        // Increment favorites count in the recipe
+        recipe.setFavoritesCount(recipe.getFavoritesCount() + 1);
+        recipeService.saveRecipe(recipe);
     }
 
     return ResponseEntity.ok(Map.of(
         "message", "Recipe added to favorites successfully!",
-        "favorites", authenticatedUser.getFavorites()
+        "favoritesCount", recipe.getFavoritesCount()
     ));
 }
+
+
 
 @DeleteMapping("/{recipeId}/favorites")
 public ResponseEntity<?> removeRecipeFromFavorites(
@@ -440,22 +450,26 @@ public ResponseEntity<?> removeRecipeFromFavorites(
 
     User authenticatedUser = (User) session.getAttribute("user");
 
-    // Check if the recipe exists (if necessary for your business logic)
-    if (!recipeService.getRecipeById(recipeId).isPresent()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", "Recipe not found with ID: " + recipeId));
-    }
+    Recipe recipe = recipeService.getRecipeById(recipeId)
+            .orElseThrow(() -> new RuntimeException("Recipe not found with ID: " + recipeId));
 
     if (authenticatedUser.getFavorites().contains(recipeId)) {
-        authenticatedUser.removeFavorite(recipeId); // Use User's method to remove favorite
+        authenticatedUser.removeFavorite(recipeId); // Remove from user's favorites
         userService.saveUser(authenticatedUser);
+
+        // Decrement favorites count in the recipe
+        if (recipe.getFavoritesCount() > 0) {
+            recipe.setFavoritesCount(recipe.getFavoritesCount() - 1);
+            recipeService.saveRecipe(recipe);
+        }
     }
 
     return ResponseEntity.ok(Map.of(
         "message", "Recipe removed from favorites successfully!",
-        "favorites", authenticatedUser.getFavorites()
+        "favoritesCount", recipe.getFavoritesCount()
     ));
 }
+
 
 
 
