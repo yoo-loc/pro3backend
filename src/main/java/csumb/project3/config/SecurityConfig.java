@@ -9,6 +9,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 @Configuration
 public class SecurityConfig {
@@ -29,8 +30,8 @@ public class SecurityConfig {
                                 "/api/auth/signup",  // Signup endpoint
                                 "/api/auth/logout",  // Logout endpoint
                                 "/api/users/**",     // User-related endpoints
-                                "/api/recipes/all",  // Fetch all recipes
-                                "/api/recipes/**",   // Recipe-specific endpoints
+                                "/recipes/all",  // Fetch all recipes
+                                "/recipes/**",   // Recipe-specific endpoints
                                 "/public/**"         // Public endpoints
                         ).permitAll() // Allow unauthenticated access to these routes
                         .anyRequest().authenticated() // Require authentication for all other routes
@@ -51,16 +52,16 @@ public class SecurityConfig {
 
         // Set allowed origins
         corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",  // React frontend (local)
-                "http://10.0.2.2:3000",  // Android emulator (local backend)
-                "http://192.168.1.225:3000" // Machine's local network IP
-        ));
-
+        "http://localhost:3000", 
+        "http://10.0.2.2:3000",  
+        "http://192.168.1.225:3000"
+));
+corsConfig.setAllowCredentials(true);
         // Allow standard HTTP methods
         corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // Allow all headers
-        corsConfig.setAllowedHeaders(Arrays.asList("*"));
+       corsConfig.setAllowedHeaders(Collections.singletonList("*"));
 
         // Enable credentials for session cookies
         corsConfig.setAllowCredentials(true);
