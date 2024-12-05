@@ -16,7 +16,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                // Disable CSRF protection
+                // Disable CSRF protection for APIs
                 .csrf(csrf -> csrf.disable())
 
                 // Enable and configure CORS
@@ -25,21 +25,21 @@ public class SecurityConfig {
                 // Configure request authorization
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/signup",
-                                "/api/auth/logout",
-                                "/api/users/**",
-                                "/recipes/all",
-                                "/recipes/**", // Adjust for your specific routes
-                                "/public/**" // Allow public endpoints
-                        ).permitAll() // Allow these routes without authentication
+                                "/api/auth/login",   // Login endpoint
+                                "/api/auth/signup",  // Signup endpoint
+                                "/api/auth/logout",  // Logout endpoint
+                                "/api/users/**",     // User-related endpoints
+                                "/api/recipes/all",  // Fetch all recipes
+                                "/api/recipes/**",   // Recipe-specific endpoints
+                                "/public/**"         // Public endpoints
+                        ).permitAll() // Allow unauthenticated access to these routes
                         .anyRequest().authenticated() // Require authentication for all other routes
                 )
 
-                // Disable form login
+                // Disable default form login
                 .formLogin(form -> form.disable())
 
-                // Disable default logout handling
+                // Disable Spring Security's default logout handling
                 .logout(logout -> logout.disable())
 
                 .build();
@@ -48,16 +48,26 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfig = new CorsConfiguration();
+
+        // Set allowed origins
         corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000", // React frontend
-                "http://10.0.2.2:3000", // Android emulator
-                "http://192.168.1.225:3000" // Your machine's IP
+                "http://localhost:3000",  // React frontend (local)
+                "http://10.0.2.2:3000",  // Android emulator (local backend)
+                "http://192.168.1.225:3000" // Machine's local network IP
         ));
+
+        // Allow standard HTTP methods
         corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        corsConfig.setAllowedHeaders(Arrays.asList("*")); // Allow all headers
-        corsConfig.setAllowCredentials(true); // Allow cookies and credentials
+
+        // Allow all headers
+        corsConfig.setAllowedHeaders(Arrays.asList("*"));
+
+        // Enable credentials for session cookies
+        corsConfig.setAllowCredentials(true);
+
+        // Apply CORS configuration to all routes
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfig); // Apply to all endpoints
+        source.registerCorsConfiguration("/**", corsConfig);
         return source;
     }
 }
