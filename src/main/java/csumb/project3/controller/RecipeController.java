@@ -169,7 +169,7 @@ public ResponseEntity<List<Map<String, String>>> getCommentsForRecipe(@PathVaria
 
 
 
-
+// get details of a specific 
 @GetMapping("/{id}/details")
 public ResponseEntity<?> getSpecificRecipeWithReferences(
         @PathVariable String id,
@@ -198,6 +198,11 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
         boolean isFavorite = authenticatedUser.getFavorites() != null &&
                 authenticatedUser.getFavorites().contains(recipe.getId());
 
+                 // Fetch the owner's username
+                 String ownerUsername = userService.getUserById(recipe.getOwnerId())
+                 .map(User::getUsername)
+                 .orElse("Unknown Owner");
+
         // Prepare response
         Map<String, String> response = new LinkedHashMap<>();
         response.put("id", recipe.getId());
@@ -211,6 +216,7 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
         response.put("favoritesCount", String.valueOf(recipe.getFavoritesCount())); // Add favorites count
         response.put("likes", String.valueOf(recipe.getLikes())); // Convert likes to string
         response.put("isFavorite", String.valueOf(isFavorite)); // Convert boolean to string
+        response.put("ownerUsername", ownerUsername);
 
         // Add comments to the response
         for (int i = 0; i < comments.size(); i++) {
@@ -242,7 +248,7 @@ public ResponseEntity<?> getSpecificRecipeWithReferences(
 
 
 
-
+// Post a comment
 @PostMapping("/{recipeId}/comments")
 public ResponseEntity<?> addComment(
         @PathVariable String recipeId,
@@ -302,7 +308,7 @@ public ResponseEntity<?> addComment(
             ));
 }
 
-
+//Delete a comment
 @DeleteMapping("/{recipeId}/comments/{commentId}")
 public ResponseEntity<?> removeCommentFromRecipe(
         @PathVariable String recipeId,
@@ -353,7 +359,7 @@ public ResponseEntity<?> removeCommentFromRecipe(
 }
 
 
-
+// Edit comments
 @PatchMapping("/{recipeId}/comments/{commentId}")
 public ResponseEntity<?> editComment(
         @PathVariable String recipeId,
@@ -408,7 +414,7 @@ public ResponseEntity<?> editComment(
     ));
 }
 
-
+// Add recipe to favorites
 @PostMapping("/{recipeId}/favorites")
 public ResponseEntity<?> addRecipeToFavorites(
         @PathVariable String recipeId,
@@ -440,7 +446,7 @@ public ResponseEntity<?> addRecipeToFavorites(
 }
 
 
-
+// Remove recipe from favorites
 @DeleteMapping("/{recipeId}/favorites")
 public ResponseEntity<?> removeRecipeFromFavorites(
         @PathVariable String recipeId,
@@ -477,7 +483,7 @@ public ResponseEntity<?> removeRecipeFromFavorites(
 
 
 
-
+//Delete recipe
 @DeleteMapping("/{id}")
 public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletRequest request) {
     HttpSession session = request.getSession(false);
@@ -536,7 +542,7 @@ public ResponseEntity<?> deleteRecipe(@PathVariable String id, HttpServletReques
     return ResponseEntity.noContent().build();
 }
 
-
+// Edit recipe
 @PatchMapping("/{recipeId}")
 public ResponseEntity<?> editRecipe(
         @PathVariable String recipeId,
