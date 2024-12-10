@@ -54,7 +54,8 @@ public class SecurityConfig {
         corsConfig.setAllowedOrigins(Arrays.asList(
         "http://localhost:3000", 
         "http://10.0.2.2:3000",  
-        "http://192.168.1.225:3000"
+        "http://192.168.1.225:3000",
+        "https://project3-30a71.web.app"
 ));
 corsConfig.setAllowCredentials(true);
         // Allow standard HTTP methods
